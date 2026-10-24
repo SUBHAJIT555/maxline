@@ -8,6 +8,7 @@ import { ScreenBackground } from "@/components/branding/ScreenBackground";
 import { GlowButton } from "@/components/ui/GlowButton";
 import { KioskFrame } from "@/components/ui/KioskFrame";
 import { ASSETS } from "@/lib/assets";
+import { fetchLeaderboardAction } from "@/lib/leaderboard-server";
 import { useGameStore } from "@/store/game-store";
 
 const MEDALS = [ASSETS.medal1st, ASSETS.medal2nd, ASSETS.medal3rd] as const;
@@ -69,14 +70,20 @@ function LeaderboardContent() {
   const lastScore = useGameStore((s) => s.lastScore);
   const clearSession = useGameStore((s) => s.clearSession);
   const leaderboard = useGameStore((s) => s.leaderboard);
+  const setLeaderboard = useGameStore((s) => s.setLeaderboard);
   const listRef = useRef<HTMLUListElement>(null);
   const youRowRef = useRef<HTMLLIElement>(null);
 
   const youEntryId = useMemo(() => {
     if (!highlightMe || !participant) return null;
-    const mine = leaderboard.filter(
+    const byId = leaderboard.filter(
       (entry) => entry.participantId === participant.id,
     );
+    const byName = leaderboard.filter(
+      (entry) =>
+        entry.name.trim().toLowerCase() === participant.name.trim().toLowerCase(),
+    );
+    const mine = byId.length > 0 ? byId : byName;
     if (mine.length === 0) return null;
     if (lastScore !== null) {
       const match = mine
@@ -87,6 +94,16 @@ function LeaderboardContent() {
     return [...mine].sort((a, b) => b.playedAt.localeCompare(a.playedAt))[0]!
       .id;
   }, [highlightMe, participant, lastScore, leaderboard]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchLeaderboardAction().then((remote) => {
+      if (!cancelled && remote && remote.length > 0) setLeaderboard(remote);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [setLeaderboard]);
 
   useEffect(() => {
     if (!youEntryId || !youRowRef.current) return;

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { submitScoreAction } from "@/lib/leaderboard-server";
 import type { Participant, ScoreEntry } from "@/lib/types";
 
 type GameStore = {
@@ -13,6 +14,7 @@ type GameStore = {
   setParticipant: (data: Omit<Participant, "id" | "createdAt">) => Participant;
   setLastScore: (score: number) => void;
   submitScore: (score: number) => ScoreEntry | null;
+  setLeaderboard: (entries: ScoreEntry[]) => void;
   clearSession: () => void;
   topFive: () => ScoreEntry[];
 };
@@ -58,8 +60,17 @@ export const useGameStore = create<GameStore>()(
 
         const next = [...leaderboard, entry].sort((a, b) => b.score - a.score);
         set({ lastScore: score, leaderboard: next });
+        void submitScoreAction({
+          name: participant.name,
+          email: participant.email,
+          phone: participant.phone,
+          score,
+          runId: entry.id,
+        });
         return entry;
       },
+
+      setLeaderboard: (entries) => set({ leaderboard: entries }),
 
       clearSession: () => set({ participant: null, lastScore: null }),
 
