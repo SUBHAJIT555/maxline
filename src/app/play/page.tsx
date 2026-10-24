@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GameTitle } from "@/components/branding/GameTitle";
 import { ScreenBackground } from "@/components/branding/ScreenBackground";
 import { GameBoard } from "@/components/game/GameBoard";
@@ -12,10 +12,21 @@ export default function PlayPage() {
   const router = useRouter();
   const participant = useGameStore((s) => s.participant);
   const submitScore = useGameStore((s) => s.submitScore);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const mark = () => setHydrated(true);
+    if (useGameStore.persist.hasHydrated()) {
+      mark();
+      return;
+    }
+    return useGameStore.persist.onFinishHydration(mark);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (!participant) router.replace("/register");
-  }, [participant, router]);
+  }, [hydrated, participant, router]);
 
   const onFinished = useCallback(
     (score: number) => {
@@ -25,7 +36,7 @@ export default function PlayPage() {
     [router, submitScore],
   );
 
-  if (!participant) return null;
+  if (!hydrated || !participant) return null;
 
   return (
     <KioskFrame>

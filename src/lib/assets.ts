@@ -17,4 +17,7 @@ export const ASSETS = {
   cargoAir: "/assets/cargo-air.png",
   cargoDamaged: "/assets/cargo-damaged.png",
   cargoRestricted: "/assets/cargo-restricted.png",
+  sfxCorrect: "/assets/sfx/correct.wav",
+  sfxWrong: "/assets/sfx/wrong.wav",
+  sfxApplause: "/assets/sfx/cheer.ogg",
 } as const;

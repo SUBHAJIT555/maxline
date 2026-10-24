@@ -8,6 +8,7 @@ import { FormField } from "@/components/ui/FormField";
 import { GlowButton } from "@/components/ui/GlowButton";
 import { KioskFrame } from "@/components/ui/KioskFrame";
 import { KioskKeyboard } from "@/components/ui/KioskKeyboard";
+import { unlockSfx } from "@/lib/sfx";
 import { useGameStore } from "@/store/game-store";
 
 type Field = "name" | "email" | "phone";
@@ -61,6 +62,7 @@ export default function RegisterPage() {
 
   function startGame() {
     if (!name.trim() || !phone.trim()) return;
+    unlockSfx();
     setParticipant({
       name: name.trim(),
       email: email.trim(),
@@ -109,11 +111,11 @@ export default function RegisterPage() {
     <KioskFrame>
       <ScreenBackground>
         <div className="relative flex h-full min-h-0 flex-col items-center overflow-hidden px-[7%] pt-[3.5%]">
-          <GameTitle size="compact" subtitle="Ready for the Logistics Challenge?" />
+          <GameTitle size="hero" subtitle="Ready for the Logistics Challenge?" />
 
           <form
             onSubmit={onSubmit}
-            className="mt-30 flex w-full shrink-0 flex-col items-center gap-4"
+            className="mt-10 flex w-full shrink-0 flex-col items-center gap-9"
           >
             <FormField
               icon={<PersonIcon />}
@@ -154,11 +156,21 @@ export default function RegisterPage() {
             <GlowButton
               type="submit"
               disabled={!ready}
-              className="mt-3"
+              className={`relative z-30 mt-2 ${keyboardOpen ? "-translate-y-1" : ""}`}
               onClick={startGame}
             >
               Start Challenge
             </GlowButton>
+
+            {!keyboardOpen ? (
+              <button
+                type="button"
+                onClick={() => router.push("/leaderboard")}
+                className="inline-flex min-h-12 w-full max-w-md items-center justify-center rounded-2xl border border-[var(--color-max-cyan)]/70 bg-white/5 text-base font-bold tracking-wide text-[var(--color-max-cyan)]"
+              >
+                View Leaderboard
+              </button>
+            ) : null}
           </form>
 
           {keyboardOpen ? (

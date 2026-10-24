@@ -64,7 +64,7 @@ export function KioskKeyboard({
   }
 
   const panel =
-    "w-full rounded-[1.4rem] border border-[var(--color-max-cyan)]/45 bg-[#001B3D]/95 p-[2.2%] shadow-[0_0_28px_rgba(0,100,180,0.35)] backdrop-blur-md";
+    "w-full rounded-[1rem] border border-[var(--color-max-cyan)]/45 bg-[#001B3D]/95 p-[2.2%] shadow-[0_0_28px_rgba(0,100,180,0.35)] backdrop-blur-md";
 
   if (mode === "phone") {
     return (

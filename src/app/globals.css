@@ -78,6 +78,10 @@ textarea {
   pointer-events: none;
 }
 
+.cargo-life-paused .cargo-life {
+  animation-play-state: paused;
+}
+
 /* Flex-safe scroll area: no visible bar, still pans / wheels */
 .scroll-clip {
   position: relative;
@@ -113,4 +117,24 @@ textarea {
   100% {
     opacity: 0;
   }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -12cqh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift), 115cqh, 0) rotate(var(--spin));
+    opacity: 1;
+  }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  display: block;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
 }

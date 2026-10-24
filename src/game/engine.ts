@@ -93,6 +93,32 @@ export function startGame(state: GameSnapshot): GameSnapshot {
   };
 }
 
+export function pauseGame(
+  state: GameSnapshot,
+  now = Date.now(),
+): GameSnapshot {
+  if (state.status !== "playing") return state;
+  return { ...state, status: "paused", pausedAt: now };
+}
+
+/** Keep remaining time and cargo lifetimes; do not skip ahead for wall-clock. */
+export function resumeGame(
+  state: GameSnapshot,
+  now = Date.now(),
+): GameSnapshot {
+  if (state.status !== "paused") return state;
+  const drift = Math.max(0, now - (state.pausedAt ?? now));
+  return {
+    ...state,
+    status: "playing",
+    pausedAt: undefined,
+    items: state.items.map((item) => ({
+      ...item,
+      expiresAt: item.expiresAt + drift,
+    })),
+  };
+}
+
 export function tickTimer(state: GameSnapshot): GameSnapshot {
   if (state.status !== "playing") return state;
   const timeLeft = Math.max(0, state.timeLeft - 1);

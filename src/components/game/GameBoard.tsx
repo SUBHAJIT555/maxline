@@ -7,13 +7,16 @@ import {
   createInitialState,
   expireCargo,
   moveForklift,
+  pauseGame,
+  resumeGame,
   spawnCargo,
   startGame,
   tickTimer,
 } from "@/game/engine";
 import { ASSETS } from "@/lib/assets";
 import { GAME } from "@/lib/constants";
-import { isHazard, pointsFor } from "@/lib/scoring";
+import { pointsFor } from "@/lib/scoring";
+import { playCorrectTap, playWrongTap, unlockSfx } from "@/lib/sfx";
 import type { CargoType, GameSnapshot, GridPosition } from "@/lib/types";
 
 const CARGO_SRC: Record<CargoType, string> = {
@@ -30,7 +33,81 @@ type Props = {
   onFinished: (score: number) => void;
 };
 
+function preload(src: string) {
+  return new Promise<void>((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = src;
+  });
+}
+
+function usePlayReady() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const urls = [
+      ASSETS.bgPort,
+      ASSETS.brandLogo,
+      ASSETS.logoCargoRush,
+      ...Object.values(CARGO_SRC),
+    ];
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+    const pageLoaded =
+      document.readyState === "complete"
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            window.addEventListener("load", () => resolve(), { once: true });
+          });
+
+    Promise.all([fonts, pageLoaded, ...urls.map(preload)]).then(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (!cancelled) setReady(true);
+        });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return ready;
+}
+
+function useTabVisible() {
+  const [visible, setVisible] = useState(
+    () =>
+      typeof document === "undefined" ||
+      document.visibilityState === "visible",
+  );
+
+  useEffect(() => {
+    const sync = () => setVisible(document.visibilityState === "visible");
+    const hide = () => setVisible(false);
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("pageshow", sync);
+    window.addEventListener("pagehide", hide);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("pageshow", sync);
+      window.removeEventListener("pagehide", hide);
+    };
+  }, []);
+
+  return visible;
+}
+
 export function GameBoard({ onFinished }: Props) {
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [onScreen, setOnScreen] = useState(false);
+  const ready = usePlayReady();
+  const visible = useTabVisible();
+  const live = ready && visible && onScreen;
+
   const [state, setState] = useState<GameSnapshot>(() => createInitialState());
   const [popups, setPopups] = useState<Popup[]>([]);
   const finishedRef = useRef(false);
@@ -38,8 +115,36 @@ export function GameBoard({ onFinished }: Props) {
   stateRef.current = state;
 
   useEffect(() => {
-    setState((s) => startGame(s));
+    unlockSfx();
+    const unlock = () => unlockSfx();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => window.removeEventListener("pointerdown", unlock);
   }, []);
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setOnScreen(Boolean(entry?.isIntersecting && entry.intersectionRatio > 0.4));
+      },
+      { threshold: [0, 0.4, 1] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!live) {
+      setState((s) => pauseGame(s));
+      return;
+    }
+    setState((s) => {
+      if (s.status === "idle") return startGame(s);
+      if (s.status === "paused") return resumeGame(s);
+      return s;
+    });
+  }, [live]);
 
   useEffect(() => {
     if (state.status !== "playing") return;
@@ -81,6 +186,8 @@ export function GameBoard({ onFinished }: Props) {
     setState((current) => moveForklift(current, pos));
     if (!hit || hit.expiresAt <= Date.now()) return;
     const points = pointsFor(hit.type);
+    if (points >= 0) playCorrectTap();
+    else playWrongTap();
     setPopups((existing) => [
       ...existing,
       {
@@ -101,9 +208,14 @@ export function GameBoard({ onFinished }: Props) {
         Time : {mm}:{ss}
       </p>
 
-      <div className="relative mx-auto mt-2 min-h-0 w-full max-w-[920px] flex-1">
+      <div
+        ref={boardRef}
+        className="relative mx-auto mt-2 min-h-0 w-full max-w-[920px] flex-1"
+      >
         <div
-          className="absolute inset-0 grid gap-1 rounded-xl border border-[var(--color-max-cyan)]/40 bg-[#001428]/70 p-1.5 shadow-[inset_0_0_40px_rgba(0,180,255,0.15)]"
+          className={`absolute inset-0 grid gap-1 rounded-xl border border-[var(--color-max-cyan)]/40 bg-[#001428]/70 p-1.5 shadow-[inset_0_0_40px_rgba(0,180,255,0.15)] ${
+            state.status !== "playing" ? "cargo-life-paused" : ""
+          }`}
           style={{
             gridTemplateColumns: `repeat(${GAME.cols}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${GAME.rows}, minmax(0, 1fr))`,
@@ -118,18 +230,13 @@ export function GameBoard({ onFinished }: Props) {
               : state.items.find(
                   (c) => c.position.col === col && c.position.row === row,
                 );
-            const hazard = item ? isHazard(item.type) : false;
 
             return (
               <button
                 key={`${col}-${row}`}
                 type="button"
                 onClick={() => onCellTap({ col, row })}
-                className={`relative h-full w-full overflow-hidden rounded-md border transition ${
-                  hazard
-                    ? "border-red-500/80 bg-red-500/10"
-                    : "border-cyan-500/20 bg-cyan-950/30"
-                }`}
+                className="relative h-full w-full overflow-hidden rounded-md border border-cyan-500/20 bg-cyan-950/30 transition"
               >
                 {item ? (
                   <span

@@ -34,7 +34,7 @@ export type CargoItem = {
   expiresAt: number;
 };
 
-export type GameStatus = "idle" | "playing" | "finished";
+export type GameStatus = "idle" | "playing" | "paused" | "finished";
 
 export type GameSnapshot = {
   status: GameStatus;
@@ -44,4 +44,6 @@ export type GameSnapshot = {
   items: CargoItem[];
   /** Cell key → remaining spawn waves that must leave this cell empty. */
   cellSkips: Record<string, number>;
+  /** Epoch ms when the round was paused; used to freeze cargo lifetimes. */
+  pausedAt?: number;
 };
