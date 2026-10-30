@@ -13,14 +13,14 @@ export const GAME = {
   cols: 6,
   rows: 8,
   /** How often a spawn wave runs (ms) */
-  spawnIntervalMs: 500,
+  spawnIntervalMs: 650,
   /** Each wave places a random count in this range */
   spawnCountMin: 1,
   spawnCountMax: 3,
   /** After a tap, that cell stays empty for this many spawn waves */
   reservedSpawns: 2,
   /** How long a spawned item stays before it vanishes (ms) */
-  itemLifetimeMs: 1400,
+  itemLifetimeMs: 1800,
   /** Max cargo items on the grid at once */
   maxItemsOnGrid: 8,
 } as const;
