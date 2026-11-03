@@ -76,7 +76,7 @@ export default function ScorePage() {
 
           <div className="mt-3 flex w-full flex-col items-center">
             <motion.div
-              className="relative aspect-square w-[42%] max-w-[240px]"
+              className="relative aspect-[989/675] w-[78%] max-w-[440px]"
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 180, damping: 16 }}
@@ -86,7 +86,7 @@ export default function ScorePage() {
                 alt="Delivery trophy"
                 fill
                 className="object-contain"
-                sizes="240px"
+                sizes="440px"
                 priority
               />
             </motion.div>
